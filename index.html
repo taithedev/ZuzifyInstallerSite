@@ -3,243 +3,539 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zuzify</title>
+<title>Zuzify Installer</title>
+
+<!-- Discord / Open Graph Embed -->
+<meta property="og:title" content="Zuzify Installer">
+<meta property="og:description" content="Download the latest Zuzify Installer. Fast, sleek, and built for you.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://zuzify.vercel.app">
+<meta property="og:image" content="https://raw.githubusercontent.com/taithedev/ZuzifyInstallerSite/main/preview.png">
+<meta property="og:site_name" content="Zuzify">
+<meta property="theme-color" content="#000000">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Zuzify Installer">
+<meta name="twitter:description" content="Download the latest Zuzify Installer. Fast, sleek, and built for you.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/taithedev/ZuzifyInstallerSite/main/preview.png">
+<meta name="color-scheme" content="dark">
+
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: #000;
-  font-family: 'Segoe UI', system-ui, sans-serif;
+
+:root {
+  --glass-bg: rgba(255,255,255,0.025);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-border-hover: rgba(255,255,255,0.18);
+  --accent: rgba(255,255,255,0.9);
+  --muted: rgba(255,255,255,0.4);
 }
 
-/* Animated mesh gradient background */
-.bg {
+html, body {
+  width: 100%; min-height: 100vh;
+  overflow-x: hidden;
+  background: #000;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ===== CANVAS BACKGROUND ===== */
+#bgCanvas {
   position: fixed;
   inset: 0;
-  background: 
-    radial-gradient(ellipse at 20% 30%, rgba(255,255,255,0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 70%, rgba(255,255,255,0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.04) 0%, transparent 60%);
-  animation: bgShift 12s ease-in-out infinite alternate;
-}
-@keyframes bgShift {
-  0% { transform: scale(1) rotate(0deg); filter: hue-rotate(0deg); }
-  100% { transform: scale(1.15) rotate(3deg); filter: hue-rotate(10deg); }
+  z-index: 0;
 }
 
-/* Floating orbs */
-.orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.15;
-  animation: floatOrb 15s ease-in-out infinite;
-}
-.orb:nth-child(1) { width: 400px; height: 400px; background: #fff; top: -10%; left: -10%; animation-delay: 0s; }
-.orb:nth-child(2) { width: 300px; height: 300px; background: #ccc; bottom: -5%; right: -5%; animation-delay: -5s; }
-.orb:nth-child(3) { width: 250px; height: 250px; background: #eee; top: 40%; left: 60%; animation-delay: -10s; }
-@keyframes floatOrb {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(60px, -40px) scale(1.1); }
-  66% { transform: translate(-40px, 60px) scale(0.9); }
-}
-
-/* Noise texture overlay */
+/* ===== NOISE OVERLAY ===== */
 .noise {
   position: fixed;
   inset: 0;
-  opacity: 0.04;
+  z-index: 1;
   pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 200px 200px;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
 }
 
-/* Liquid glass card */
-.glass {
-  position: absolute;
-  top: 50%; left: 50%;
+/* ===== SCANLINES ===== */
+.scanlines {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.012) 3px,
+    rgba(255,255,255,0.012) 6px
+  );
+}
+
+/* ===== VIGNETTE ===== */
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%);
+}
+
+/* ===== CURSOR GLOW ===== */
+.cursor-glow {
+  position: fixed;
+  width: 400px; height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 65%);
+  pointer-events: none;
   transform: translate(-50%, -50%);
-  padding: 60px 80px;
-  border-radius: 32px;
-  background: rgba(255,255,255,0.03);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.08);
-  box-shadow: 
-    0 8px 32px rgba(0,0,0,0.4),
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    inset 0 -1px 0 rgba(255,255,255,0.05);
-  animation: glassPulse 4s ease-in-out infinite;
-}
-@keyframes glassPulse {
-  0%, 100% { box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(255,255,255,0.05); }
-  50% { box-shadow: 0 12px 48px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 -1px 0 rgba(255,255,255,0.08), 0 0 60px rgba(255,255,255,0.03); }
+  z-index: 4;
+  transition: left 0.1s ease-out, top 0.1s ease-out;
+  mix-blend-mode: screen;
 }
 
-/* Liquid shine effect on glass */
-.glass::before {
+/* ===== MAIN CONTAINER ===== */
+.container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  padding: 40px 20px;
+  max-width: 520px;
+  width: 100%;
+  animation: containerIn 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  opacity: 0;
+  transform: translateY(40px) scale(0.95);
+}
+@keyframes containerIn {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ===== LIQUID GLASS CARD ===== */
+.glass-card {
+  position: relative;
+  width: 100%;
+  padding: 56px 48px;
+  border-radius: 32px;
+  background: 
+    linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 50%, rgba(255,255,255,0.04) 100%);
+  backdrop-filter: blur(60px) saturate(200%);
+  -webkit-backdrop-filter: blur(60px) saturate(200%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 0 0 1px rgba(255,255,255,0.02),
+    0 20px 60px rgba(0,0,0,0.5),
+    0 0 80px rgba(255,255,255,0.02),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(255,255,255,0.03);
+  overflow: hidden;
+  animation: glassFloat 6s ease-in-out infinite;
+}
+@keyframes glassFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Liquid highlight sweep */
+.glass-card::before {
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 32px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 40%, transparent 60%, rgba(255,255,255,0.05) 100%);
+  background: linear-gradient(
+    105deg,
+    transparent 30%,
+    rgba(255,255,255,0.08) 45%,
+    rgba(255,255,255,0.15) 50%,
+    rgba(255,255,255,0.08) 55%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shineSweep 5s ease-in-out infinite;
   pointer-events: none;
-  animation: shineMove 6s ease-in-out infinite;
 }
-@keyframes shineMove {
-  0%, 100% { opacity: 0.5; transform: translateX(-10%); }
-  50% { opacity: 0.8; transform: translateX(10%); }
+@keyframes shineSweep {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* Download button */
+/* Inner glow ring */
+.glass-card::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 31px;
+  border: 1px solid rgba(255,255,255,0.04);
+  pointer-events: none;
+}
+
+/* ===== LOGO / BRAND ===== */
+.brand {
+  text-align: center;
+  margin-bottom: 36px;
+}
+.brand h1 {
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.6) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 40px rgba(255,255,255,0.1);
+  animation: brandPulse 4s ease-in-out infinite;
+}
+@keyframes brandPulse {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
+.brand p {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+/* ===== DOWNLOAD BUTTON ===== */
+.download-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
 .download-btn {
   position: relative;
-  display: inline-block;
-  padding: 18px 56px;
-  font-size: 18px;
-  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 64px;
+  font-size: 17px;
+  font-weight: 600;
   letter-spacing: 2px;
   text-transform: lowercase;
   color: #fff;
   background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 18px;
   cursor: pointer;
   text-decoration: none;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  box-shadow: 
+    0 4px 24px rgba(0,0,0,0.3),
+    0 0 0 1px rgba(255,255,255,0.02),
+    inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.download-btn svg {
+  width: 20px; height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .download-btn::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
   opacity: 0;
-  transition: opacity 0.4s;
+  transition: opacity 0.5s;
+}
+.download-btn::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent, rgba(255,255,255,0.1));
+  opacity: 0;
+  z-index: -1;
+  filter: blur(8px);
+  transition: opacity 0.5s;
 }
 .download-btn:hover {
   background: rgba(255,255,255,0.12);
-  border-color: rgba(255,255,255,0.25);
-  transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 30px rgba(255,255,255,0.05);
+  border-color: var(--glass-border-hover);
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 
+    0 12px 48px rgba(0,0,0,0.5),
+    0 0 40px rgba(255,255,255,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.15);
 }
+.download-btn:hover svg { transform: translateY(2px); }
 .download-btn:hover::before { opacity: 1; }
+.download-btn:hover::after { opacity: 1; }
 .download-btn:active {
   transform: translateY(-1px) scale(0.98);
+  transition: all 0.1s;
 }
 
-/* Ripple effect container */
+/* Ripple */
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255,255,255,0.25);
   transform: scale(0);
-  animation: rippleAnim 0.8s linear;
+  animation: rippleAnim 0.9s cubic-bezier(0.23, 1, 0.32, 1) forwards;
   pointer-events: none;
 }
 @keyframes rippleAnim {
-  to { transform: scale(4); opacity: 0; }
+  to { transform: scale(5); opacity: 0; }
 }
 
-/* Cursor glow trail */
-.cursor-glow {
-  position: fixed;
-  width: 300px; height: 300px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: left 0.15s ease-out, top 0.15s ease-out;
-  z-index: 1;
+/* ===== UPDATE LOG ===== */
+.log-card {
+  width: 100%;
+  border-radius: 24px;
+  background: rgba(255,255,255,0.015);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+  animation: logIn 1s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+@keyframes logIn {
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* Scanlines */
-.scanlines {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(255,255,255,0.015) 2px,
-    rgba(255,255,255,0.015) 4px
-  );
-  z-index: 2;
+.log-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 24px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.log-header svg {
+  width: 16px; height: 16px;
+  stroke: var(--muted);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.log-header span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-/* Vignette */
-.vignette {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.6) 100%);
-  z-index: 3;
+.log-body {
+  padding: 20px 24px 24px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  color: rgba(255,255,255,0.65);
+  white-space: pre-wrap;
+}
+.log-body::-webkit-scrollbar { width: 4px; }
+.log-body::-webkit-scrollbar-track { background: transparent; }
+.log-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+/* Version badge highlight */
+.log-body strong, .log-body b {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ===== FOOTER ===== */
+.footer {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  letter-spacing: 1px;
+  animation: footerIn 1s ease 0.6s forwards;
+  opacity: 0;
+}
+@keyframes footerIn { to { opacity: 1; } }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 560px) {
+  .glass-card { padding: 40px 28px; border-radius: 24px; }
+  .brand h1 { font-size: 34px; }
+  .download-btn { padding: 18px 48px; font-size: 15px; }
+  .log-body { max-height: 160px; }
 }
 </style>
 <base target="_blank">
 </head>
 <body>
 
-<div class="bg"></div>
-<div class="orb"></div>
-<div class="orb"></div>
-<div class="orb"></div>
+<canvas id="bgCanvas"></canvas>
 <div class="noise"></div>
 <div class="scanlines"></div>
 <div class="vignette"></div>
 <div class="cursor-glow" id="cursorGlow"></div>
 
-<div class="glass">
-  <a href="https://github.com/taithedev/ZuzifyInstaller-/releases/download/download/ZuzifyInstaller.exe" 
-     class="download-btn" 
-     id="downloadBtn"
-     download>
-    download
-  </a>
+<div class="container">
+  <div class="glass-card" id="glassCard">
+    <div class="brand">
+      <h1>Zuzify</h1>
+      <p>Installer</p>
+    </div>
+    <div class="download-wrap">
+      <a href="https://github.com/taithedev/ZuzifyInstaller-/releases/download/download/ZuzifyInstaller.exe"
+         class="download-btn"
+         id="downloadBtn"
+         download>
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        download
+      </a>
+    </div>
+  </div>
+
+  <div class="log-card">
+    <div class="log-header">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      <span>Update Log</span>
+    </div>
+    <div class="log-body" id="logBody">     V2<br>mew user interface<br>SUABP instead of BAGCOD ( faster loading )<br>Discord API Implemented</div>
+  </div>
+
+  <div class="footer">zuzify installer &mdash; built by taithedev</div>
 </div>
 
 <script>
-// Cursor glow follow
+// ===== CANVAS PARTICLE BACKGROUND =====
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, particles = [], mouseX = 0, mouseY = 0;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+class Particle {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * W;
+    this.y = Math.random() * H;
+    this.vx = (Math.random() - 0.5) * 0.3;
+    this.vy = (Math.random() - 0.5) * 0.3;
+    this.radius = Math.random() * 2 + 0.5;
+    this.alpha = Math.random() * 0.4 + 0.1;
+    this.pulse = Math.random() * Math.PI * 2;
+  }
+  update() {
+    this.x += this.vx;
+    this.y += this.vy;
+    this.pulse += 0.02;
+
+    // Mouse repulsion
+    const dx = this.x - mouseX;
+    const dy = this.y - mouseY;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    if (dist < 150) {
+      const force = (150 - dist) / 150;
+      this.vx += (dx / dist) * force * 0.5;
+      this.vy += (dy / dist) * force * 0.5;
+    }
+
+    // Friction
+    this.vx *= 0.99;
+    this.vy *= 0.99;
+
+    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
+  }
+  draw() {
+    const a = this.alpha * (0.7 + 0.3 * Math.sin(this.pulse));
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(255,255,255,${a})`;
+    ctx.fill();
+  }
+}
+
+for (let i = 0; i < 120; i++) particles.push(new Particle());
+
+function drawLines() {
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 120) {
+        const alpha = (1 - dist / 120) * 0.08;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+function animate() {
+  ctx.clearRect(0, 0, W, H);
+  // Subtle radial glow at center
+  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.6);
+  grad.addColorStop(0, 'rgba(255,255,255,0.015)');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  particles.forEach(p => { p.update(); p.draw(); });
+  drawLines();
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ===== CURSOR GLOW =====
 const cursorGlow = document.getElementById('cursorGlow');
 document.addEventListener('mousemove', (e) => {
+  mouseX = e.clientX;
+  mouseY = e.clientY;
   cursorGlow.style.left = e.clientX + 'px';
   cursorGlow.style.top = e.clientY + 'px';
 });
 
-// Ripple effect on button click
+// ===== RIPPLE EFFECT =====
 document.getElementById('downloadBtn').addEventListener('click', function(e) {
   const btn = this;
   const rect = btn.getBoundingClientRect();
   const ripple = document.createElement('span');
   ripple.className = 'ripple';
-  const size = Math.max(rect.width, rect.height);
+  const size = Math.max(rect.width, rect.height) * 1.5;
   ripple.style.width = ripple.style.height = size + 'px';
   ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
   ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
   btn.appendChild(ripple);
-  setTimeout(() => ripple.remove(), 800);
+  setTimeout(() => ripple.remove(), 900);
 });
 
-// Subtle parallax on mouse move
+// ===== PARALLAX TILT =====
+const glassCard = document.getElementById('glassCard');
 document.addEventListener('mousemove', (e) => {
-  const x = (e.clientX / window.innerWidth - 0.5) * 20;
-  const y = (e.clientY / window.innerHeight - 0.5) * 20;
-  document.querySelector('.glass').style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+  const x = (e.clientX / window.innerWidth - 0.5) * 12;
+  const y = (e.clientY / window.innerHeight - 0.5) * 12;
+  glassCard.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${-y}deg)`;
 });
-
-// Random micro-movements for orbs
-setInterval(() => {
-  document.querySelectorAll('.orb').forEach((orb, i) => {
-    const rx = (Math.random() - 0.5) * 30;
-    const ry = (Math.random() - 0.5) * 30;
-    orb.style.transform = `translate(${rx}px, ${ry}px)`;
-  });
-}, 3000);
 </script>
 
 </body>
