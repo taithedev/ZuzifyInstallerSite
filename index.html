@@ -1,542 +1,317 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Zuzify Installer</title>
+// Program.cs
+using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Spectre.Console;
+using ZuzifyQXE;
 
-<!-- Discord / Open Graph Embed -->
-<meta property="og:title" content="Zuzify Installer">
-<meta property="og:description" content="Download the latest Zuzify Installer. Fast, sleek, and built for you.">
-<meta property="og:type" content="website">
-<meta property="og:url" content="https://zuzify.vercel.app">
-<meta property="og:image" content="https://raw.githubusercontent.com/taithedev/ZuzifyInstallerSite/main/preview.png">
-<meta property="og:site_name" content="Zuzify">
-<meta property="theme-color" content="#000000">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Zuzify Installer">
-<meta name="twitter:description" content="Download the latest Zuzify Installer. Fast, sleek, and built for you.">
-<meta name="twitter:image" content="https://raw.githubusercontent.com/taithedev/ZuzifyInstallerSite/main/preview.png">
-<meta name="color-scheme" content="dark">
+class Program
+{
+    static Core core = new();
+    static Theme T => core.T;
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    static async Task Main()
+    {
+        Console.Title = "ZuzifyQXE";
+        await core.Load();
+        await Boot();
+        await core.Connect();
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
+        if (core.Cfg.UserId == null && !string.IsNullOrWhiteSpace(core.Cfg.Username))
+        {
+            var id = await core.EnsureUser(core.Cfg.Username);
+            if (id.HasValue)
+            {
+                core.Cfg.UserId = id;
+                await core.Save();
+            }
+        }
 
-:root {
-  --glass-bg: rgba(255,255,255,0.025);
-  --glass-border: rgba(255,255,255,0.08);
-  --glass-border-hover: rgba(255,255,255,0.18);
-  --accent: rgba(255,255,255,0.9);
-  --muted: rgba(255,255,255,0.4);
-}
-
-html, body {
-  width: 100%; min-height: 100vh;
-  overflow-x: hidden;
-  background: #000;
-  font-family: 'Inter', system-ui, sans-serif;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-}
-
-/* ===== CANVAS BACKGROUND ===== */
-#bgCanvas {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-}
-
-/* ===== NOISE OVERLAY ===== */
-.noise {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size: 256px 256px;
-}
-
-/* ===== SCANLINES ===== */
-.scanlines {
-  position: fixed;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 3px,
-    rgba(255,255,255,0.012) 3px,
-    rgba(255,255,255,0.012) 6px
-  );
-}
-
-/* ===== VIGNETTE ===== */
-.vignette {
-  position: fixed;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.7) 100%);
-}
-
-/* ===== CURSOR GLOW ===== */
-.cursor-glow {
-  position: fixed;
-  width: 400px; height: 400px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 65%);
-  pointer-events: none;
-  transform: translate(-50%, -50%);
-  z-index: 4;
-  transition: left 0.1s ease-out, top 0.1s ease-out;
-  mix-blend-mode: screen;
-}
-
-/* ===== MAIN CONTAINER ===== */
-.container {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 28px;
-  padding: 40px 20px;
-  max-width: 520px;
-  width: 100%;
-  animation: containerIn 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-  opacity: 0;
-  transform: translateY(40px) scale(0.95);
-}
-@keyframes containerIn {
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-/* ===== LIQUID GLASS CARD ===== */
-.glass-card {
-  position: relative;
-  width: 100%;
-  padding: 56px 48px;
-  border-radius: 32px;
-  background: 
-    linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 50%, rgba(255,255,255,0.04) 100%);
-  backdrop-filter: blur(60px) saturate(200%);
-  -webkit-backdrop-filter: blur(60px) saturate(200%);
-  border: 1px solid var(--glass-border);
-  box-shadow: 
-    0 0 0 1px rgba(255,255,255,0.02),
-    0 20px 60px rgba(0,0,0,0.5),
-    0 0 80px rgba(255,255,255,0.02),
-    inset 0 1px 0 rgba(255,255,255,0.1),
-    inset 0 -1px 0 rgba(255,255,255,0.03);
-  overflow: hidden;
-  animation: glassFloat 6s ease-in-out infinite;
-}
-@keyframes glassFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-6px); }
-}
-
-/* Liquid highlight sweep */
-.glass-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 32px;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(255,255,255,0.08) 45%,
-    rgba(255,255,255,0.15) 50%,
-    rgba(255,255,255,0.08) 55%,
-    transparent 70%
-  );
-  background-size: 200% 100%;
-  animation: shineSweep 5s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes shineSweep {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
-}
-
-/* Inner glow ring */
-.glass-card::after {
-  content: '';
-  position: absolute;
-  inset: 1px;
-  border-radius: 31px;
-  border: 1px solid rgba(255,255,255,0.04);
-  pointer-events: none;
-}
-
-/* ===== LOGO / BRAND ===== */
-.brand {
-  text-align: center;
-  margin-bottom: 36px;
-}
-.brand h1 {
-  font-size: 42px;
-  font-weight: 700;
-  letter-spacing: -1px;
-  background: linear-gradient(180deg, #fff 0%, rgba(255,255,255,0.6) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 0 0 40px rgba(255,255,255,0.1);
-  animation: brandPulse 4s ease-in-out infinite;
-}
-@keyframes brandPulse {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.15); }
-}
-.brand p {
-  font-size: 13px;
-  color: var(--muted);
-  margin-top: 6px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  font-weight: 500;
-}
-
-/* ===== DOWNLOAD BUTTON ===== */
-.download-wrap {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-.download-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 20px 64px;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  text-transform: lowercase;
-  color: #fff;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 18px;
-  cursor: pointer;
-  text-decoration: none;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-  overflow: hidden;
-  box-shadow: 
-    0 4px 24px rgba(0,0,0,0.3),
-    0 0 0 1px rgba(255,255,255,0.02),
-    inset 0 1px 0 rgba(255,255,255,0.08);
-}
-.download-btn svg {
-  width: 20px; height: 20px;
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-}
-.download-btn::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
-  opacity: 0;
-  transition: opacity 0.5s;
-}
-.download-btn::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255,255,255,0.3), transparent, rgba(255,255,255,0.1));
-  opacity: 0;
-  z-index: -1;
-  filter: blur(8px);
-  transition: opacity 0.5s;
-}
-.download-btn:hover {
-  background: rgba(255,255,255,0.12);
-  border-color: var(--glass-border-hover);
-  transform: translateY(-4px) scale(1.03);
-  box-shadow: 
-    0 12px 48px rgba(0,0,0,0.5),
-    0 0 40px rgba(255,255,255,0.06),
-    inset 0 1px 0 rgba(255,255,255,0.15);
-}
-.download-btn:hover svg { transform: translateY(2px); }
-.download-btn:hover::before { opacity: 1; }
-.download-btn:hover::after { opacity: 1; }
-.download-btn:active {
-  transform: translateY(-1px) scale(0.98);
-  transition: all 0.1s;
-}
-
-/* Ripple */
-.ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
-  transform: scale(0);
-  animation: rippleAnim 0.9s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-  pointer-events: none;
-}
-@keyframes rippleAnim {
-  to { transform: scale(5); opacity: 0; }
-}
-
-/* ===== UPDATE LOG ===== */
-.log-card {
-  width: 100%;
-  border-radius: 24px;
-  background: rgba(255,255,255,0.015);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
-  border: 1px solid var(--glass-border);
-  box-shadow: 
-    0 8px 32px rgba(0,0,0,0.3),
-    inset 0 1px 0 rgba(255,255,255,0.06);
-  overflow: hidden;
-  animation: logIn 1s cubic-bezier(0.23, 1, 0.32, 1) 0.3s forwards;
-  opacity: 0;
-  transform: translateY(20px);
-}
-@keyframes logIn {
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.log-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 18px 24px 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.log-header svg {
-  width: 16px; height: 16px;
-  stroke: var(--muted);
-  fill: none;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.log-header span {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 2.5px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.log-body {
-  padding: 20px 24px 24px;
-  max-height: 200px;
-  overflow-y: auto;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  line-height: 1.8;
-  color: rgba(255,255,255,0.65);
-  white-space: pre-wrap;
-}
-.log-body::-webkit-scrollbar { width: 4px; }
-.log-body::-webkit-scrollbar-track { background: transparent; }
-.log-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
-
-/* Version badge highlight */
-.log-body strong, .log-body b {
-  color: #fff;
-  font-weight: 500;
-}
-
-/* ===== FOOTER ===== */
-.footer {
-  text-align: center;
-  font-size: 11px;
-  color: rgba(255,255,255,0.2);
-  letter-spacing: 1px;
-  animation: footerIn 1s ease 0.6s forwards;
-  opacity: 0;
-}
-@keyframes footerIn { to { opacity: 1; } }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 560px) {
-  .glass-card { padding: 40px 28px; border-radius: 24px; }
-  .brand h1 { font-size: 34px; }
-  .download-btn { padding: 18px 48px; font-size: 15px; }
-  .log-body { max-height: 160px; }
-}
-</style>
-<base target="_blank">
-</head>
-<body>
-
-<canvas id="bgCanvas"></canvas>
-<div class="noise"></div>
-<div class="scanlines"></div>
-<div class="vignette"></div>
-<div class="cursor-glow" id="cursorGlow"></div>
-
-<div class="container">
-  <div class="glass-card" id="glassCard">
-    <div class="brand">
-      <h1>Zuzify</h1>
-      <p>Installer</p>
-    </div>
-    <div class="download-wrap">
-      <a href="https://github.com/taithedev/ZuzifyInstaller-/releases/download/download/ZuzifyInstaller.exe"
-         class="download-btn"
-         id="downloadBtn"
-         download>
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        download
-      </a>
-    </div>
-  </div>
-
-  <div class="log-card">
-    <div class="log-header">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span>Update Log</span>
-    </div>
-    <div class="log-body" id="logBody">     V2<br>mew user interface<br>SUABP instead of BAGCOD ( faster loading )<br>Discord API Implemented</div>
-  </div>
-
-  <div class="footer">zuzify installer &mdash; built by taithedev</div>
-</div>
-
-<script>
-// ===== CANVAS PARTICLE BACKGROUND =====
-const canvas = document.getElementById('bgCanvas');
-const ctx = canvas.getContext('2d');
-let W, H, particles = [], mouseX = 0, mouseY = 0;
-
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resize);
-resize();
-
-class Particle {
-  constructor() {
-    this.reset();
-  }
-  reset() {
-    this.x = Math.random() * W;
-    this.y = Math.random() * H;
-    this.vx = (Math.random() - 0.5) * 0.3;
-    this.vy = (Math.random() - 0.5) * 0.3;
-    this.radius = Math.random() * 2 + 0.5;
-    this.alpha = Math.random() * 0.4 + 0.1;
-    this.pulse = Math.random() * Math.PI * 2;
-  }
-  update() {
-    this.x += this.vx;
-    this.y += this.vy;
-    this.pulse += 0.02;
-
-    // Mouse repulsion
-    const dx = this.x - mouseX;
-    const dy = this.y - mouseY;
-    const dist = Math.sqrt(dx*dx + dy*dy);
-    if (dist < 150) {
-      const force = (150 - dist) / 150;
-      this.vx += (dx / dist) * force * 0.5;
-      this.vy += (dy / dist) * force * 0.5;
+        await Loop();
     }
 
-    // Friction
-    this.vx *= 0.99;
-    this.vy *= 0.99;
+    static async Task Boot()
+    {
+        AnsiConsole.Clear();
+        AnsiConsole.Write(new FigletText("ZuzifyQXE").Centered().Color(Color.Cyan1));
+        AnsiConsole.Write(new Rule($"[grey]{App.Version}[/]").Centered());
 
-    if (this.x < 0 || this.x > W || this.y < 0 || this.y > H) this.reset();
-  }
-  draw() {
-    const a = this.alpha * (0.7 + 0.3 * Math.sin(this.pulse));
-    ctx.beginPath();
-    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${a})`;
-    ctx.fill();
-  }
-}
-
-for (let i = 0; i < 120; i++) particles.push(new Particle());
-
-function drawLines() {
-  for (let i = 0; i < particles.length; i++) {
-    for (let j = i + 1; j < particles.length; j++) {
-      const dx = particles[i].x - particles[j].x;
-      const dy = particles[i].y - particles[j].y;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 120) {
-        const alpha = (1 - dist / 120) * 0.08;
-        ctx.beginPath();
-        ctx.moveTo(particles[i].x, particles[i].y);
-        ctx.lineTo(particles[j].x, particles[j].y);
-        ctx.strokeStyle = `rgba(255,255,255,${alpha})`;
-        ctx.lineWidth = 0.5;
-        ctx.stroke();
-      }
+        await AnsiConsole.Progress()
+            .AutoClear(true)
+            .Columns(new ProgressColumn[] { new TaskDescriptionColumn(), new ProgressBarColumn(), new SpinnerColumn() })
+            .StartAsync(async ctx =>
+            {
+                foreach (var s in new[] { "core", "discord", "editor", "ready" })
+                {
+                    var t = ctx.AddTask(s);
+                    while (!t.IsFinished)
+                    {
+                        t.Increment(Random.Shared.Next(5, 12));
+                        await Task.Delay(30);
+                    }
+                }
+            });
     }
-  }
+
+    static async Task Loop()
+    {
+        if (string.IsNullOrWhiteSpace(core.Cfg.Username))
+        {
+            core.Cfg.Username = AnsiConsole.Ask<string>("username:");
+            if (AnsiConsole.Confirm("add bot token for live lookups?", false))
+                core.Cfg.BotToken = AnsiConsole.Ask<string>("bot token:");
+            await core.Save();
+        }
+
+        while (true)
+        {
+            AnsiConsole.Clear();
+            AnsiConsole.Write(new Rule($"ZuzifyQXE  {(core.Online ? "[green]online[/]" : "[red]offline[/]")}").RuleStyle(T.Primary));
+
+            var table = new Table().Border(TableBorder.Rounded).HideHeaders();
+            table.AddColumn("k").AddColumn("v");
+            table.AddRow("lookups", core.Cfg.TotalLookups.ToString());
+            table.AddRow("badges", core.Cfg.Badges.Count.ToString());
+            table.AddRow("theme", core.Cfg.Theme.ToString());
+            table.AddRow("bot", string.IsNullOrWhiteSpace(core.Cfg.BotToken) ? "no" : "yes");
+            AnsiConsole.Write(table);
+            AnsiConsole.WriteLine();
+
+            var choice = AnsiConsole.Prompt(new SelectionPrompt<string>()
+                .AddChoices(
+                    "lookup",
+                    "favorites",
+                    "notes",
+                    "compare",
+                    "code editor",
+                    "list codes",
+                    "achievements",
+                    "theme",
+                    "settings",
+                    "export",
+                    "command",
+                    "exit"
+                ));
+
+            switch (choice)
+            {
+                case "lookup": await Lookup(); break;
+                case "favorites": await Favorites(); break;
+                case "notes": await Notes(); break;
+                case "compare": await Compare(); break;
+                case "code editor": await Editor(); break;
+                case "list codes": ListCodes(); break;
+                case "achievements": Badges(); break;
+                case "theme": await Theme(); break;
+                case "settings": await Settings(); break;
+                case "export": await Export(); break;
+                case "command": await Cmd(); break;
+                case "exit": return;
+            }
+        }
+    }
+
+    static async Task Lookup()
+    {
+        var q = AnsiConsole.Ask<string>("id / username:");
+        Profile? p = null;
+
+        await AnsiConsole.Status().StartAsync("looking up...", async _ => p = await core.Lookup(q));
+
+        if (p == null)
+        {
+            AnsiConsole.MarkupLine($"[{T.Error}]not found[/]");
+            Pause();
+            return;
+        }
+
+        var panel = new Panel(
+            $"id        {p.DiscordId}\n" +
+            $"username  {p.Username}\n" +
+            $"display   {p.GlobalName ?? "—"}\n" +
+            $"bot       {p.Bot}\n" +
+            $"lookups   {p.LookupCount}\n" +
+            $"updated   {p.LastUpdated:u}")
+            .Header("profile")
+            .BorderColor(Color.Cyan1);
+
+        AnsiConsole.Write(panel);
+
+        if (AnsiConsole.Confirm("favorite?", false))
+            await core.AddFavorite(p.DiscordId);
+
+        Pause();
+    }
+
+    static async Task Favorites()
+    {
+        var list = await core.GetFavorites();
+        if (list.Count == 0)
+        {
+            AnsiConsole.MarkupLine("[grey]empty[/]");
+            Pause();
+            return;
+        }
+
+        var t = new Table().Border(TableBorder.Rounded).AddColumn("discord id");
+        foreach (var id in list) t.AddRow(id);
+        AnsiConsole.Write(t);
+        Pause();
+    }
+
+    static async Task Notes()
+    {
+        var id = AnsiConsole.Ask<string>("discord id:");
+        var text = AnsiConsole.Ask<string>("note:");
+        if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(text)) return;
+        await core.AddNote(id, text);
+        AnsiConsole.MarkupLine($"[{T.Success}]saved[/]");
+        Pause();
+    }
+
+    static async Task Compare()
+    {
+        var a = AnsiConsole.Ask<string>("first:");
+        var b = AnsiConsole.Ask<string>("second:");
+
+        Profile? p1 = null, p2 = null;
+        await AnsiConsole.Status().StartAsync("loading...", async _ =>
+        {
+            p1 = await core.Lookup(a);
+            p2 = await core.Lookup(b);
+        });
+
+        if (p1 == null || p2 == null)
+        {
+            AnsiConsole.MarkupLine($"[{T.Error}]failed[/]");
+            Pause();
+            return;
+        }
+
+        var t = new Table().Border(TableBorder.Rounded);
+        t.AddColumn("field").AddColumn(p1.Username ?? "A").AddColumn(p2.Username ?? "B");
+        t.AddRow("id", p1.DiscordId, p2.DiscordId);
+        t.AddRow("display", p1.GlobalName ?? "—", p2.GlobalName ?? "—");
+        t.AddRow("bot", p1.Bot.ToString(), p2.Bot.ToString());
+        t.AddRow("lookups", p1.LookupCount.ToString(), p2.LookupCount.ToString());
+        AnsiConsole.Write(t);
+        await core.Unlock("compare");
+        Pause();
+    }
+
+    static async Task Editor()
+    {
+        var name = AnsiConsole.Ask<string>("filename (e.g. test.cs):");
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        var existing = await core.LoadCode(name);
+        if (existing != null)
+            AnsiConsole.MarkupLine($"[grey]loaded existing ({existing.Length} chars)[/]");
+
+        AnsiConsole.MarkupLine("[grey]paste code below. end with a line containing only :::END:::[/]");
+
+        var lines = new List<string>();
+        while (true)
+        {
+            var line = Console.ReadLine();
+            if (line == ":::END:::") break;
+            lines.Add(line ?? "");
+        }
+
+        var content = string.Join("\n", lines);
+        await core.SaveCode(name, content);
+        AnsiConsole.MarkupLine($"[{T.Success}]saved → {name}[/]");
+        Pause();
+    }
+
+    static void ListCodes()
+    {
+        var files = core.ListCodes();
+        if (files.Count == 0)
+        {
+            AnsiConsole.MarkupLine("[grey]no files[/]");
+            Pause();
+            return;
+        }
+
+        var t = new Table().Border(TableBorder.Rounded).AddColumn("file");
+        foreach (var f in files) t.AddRow(f);
+        AnsiConsole.Write(t);
+        Pause();
+    }
+
+    static void Badges()
+    {
+        var t = new Table().Border(TableBorder.Rounded).AddColumn("badge").AddColumn("has");
+        var all = new Dictionary<string, string>
+        {
+            ["first"] = "First Contact",
+            ["scout"] = "Scout (10)",
+            ["tracker"] = "Tracker (50)",
+            ["archivist"] = "Archivist (200)",
+            ["compare"] = "Compared users"
+        };
+        foreach (var (k, title) in all)
+            t.AddRow(title, core.Cfg.Badges.Contains(k) ? "[green]yes[/]" : "[grey]no[/]");
+        AnsiConsole.Write(t);
+        Pause();
+    }
+
+    static async Task Theme()
+    {
+        var t = AnsiConsole.Prompt(new SelectionPrompt<ThemeType>().Title("theme").AddChoices(Enum.GetValues<ThemeType>()));
+        core.Cfg.Theme = t;
+        await core.Save();
+    }
+
+    static async Task Settings()
+    {
+        core.Cfg.BotToken = AnsiConsole.Ask("bot token:", core.Cfg.BotToken);
+        await core.Save();
+        AnsiConsole.MarkupLine("[green]saved[/]");
+        Pause();
+    }
+
+    static async Task Export()
+    {
+        var json = core.Export();
+        var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), $"zqxe_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+        await File.WriteAllTextAsync(path, json);
+        AnsiConsole.MarkupLine($"[green]{path}[/]");
+        await core.Unlock("export");
+        Pause();
+    }
+
+    static async Task Cmd()
+    {
+        var input = AnsiConsole.Ask<string>(">").Trim().ToLowerInvariant();
+
+        if (input.StartsWith("lookup "))
+        {
+            var p = await core.Lookup(input[7..]);
+            AnsiConsole.MarkupLine(p != null ? $"{p.Username} ({p.DiscordId})" : "[red]not found[/]");
+        }
+        else if (input.StartsWith("theme "))
+        {
+            if (Enum.TryParse<ThemeType>(input[6..], true, out var t))
+            {
+                core.Cfg.Theme = t;
+                await core.Save();
+            }
+        }
+        else if (input == "export")
+        {
+            await Export();
+            return;
+        }
+        else AnsiConsole.MarkupLine("lookup <id> | theme <name> | export");
+
+        Pause();
+    }
+
+    static void Pause()
+    {
+        AnsiConsole.MarkupLine("\n[grey]press any key[/]");
+        Console.ReadKey(true);
+    }
 }
-
-function animate() {
-  ctx.clearRect(0, 0, W, H);
-  // Subtle radial glow at center
-  const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W,H)*0.6);
-  grad.addColorStop(0, 'rgba(255,255,255,0.015)');
-  grad.addColorStop(1, 'transparent');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-
-  particles.forEach(p => { p.update(); p.draw(); });
-  drawLines();
-  requestAnimationFrame(animate);
-}
-animate();
-
-// ===== CURSOR GLOW =====
-const cursorGlow = document.getElementById('cursorGlow');
-document.addEventListener('mousemove', (e) => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-  cursorGlow.style.left = e.clientX + 'px';
-  cursorGlow.style.top = e.clientY + 'px';
-});
-
-// ===== RIPPLE EFFECT =====
-document.getElementById('downloadBtn').addEventListener('click', function(e) {
-  const btn = this;
-  const rect = btn.getBoundingClientRect();
-  const ripple = document.createElement('span');
-  ripple.className = 'ripple';
-  const size = Math.max(rect.width, rect.height) * 1.5;
-  ripple.style.width = ripple.style.height = size + 'px';
-  ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
-  ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
-  btn.appendChild(ripple);
-  setTimeout(() => ripple.remove(), 900);
-});
-
-// ===== PARALLAX TILT =====
-const glassCard = document.getElementById('glassCard');
-document.addEventListener('mousemove', (e) => {
-  const x = (e.clientX / window.innerWidth - 0.5) * 12;
-  const y = (e.clientY / window.innerHeight - 0.5) * 12;
-  glassCard.style.transform = `perspective(1000px) rotateY(${x}deg) rotateX(${-y}deg)`;
-});
-</script>
-
-</body>
-</html>
